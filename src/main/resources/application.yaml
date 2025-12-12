@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: observability
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - health
+          - metrics
+          - prometheus
+          - info
+
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        add-additional-paths: true
+        enabled: true
+  info:
+    git:
+      mode: simple
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+  logging:
+    export:
+      enabled: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.vmware: DEBUG
+    org.springframework: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
+    org.apache.hc.client5.http: INFO
+    org.apache.hc.client5.http.headers: INFO
+    org.apache.hc.client5.http.impl: INFO
+    org.apache.hc.client5.http.protocol: INFO
+    WireMock: WARN
