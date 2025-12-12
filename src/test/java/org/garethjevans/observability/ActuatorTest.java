@@ -63,7 +63,8 @@ public class ActuatorTest {
   public void canGetMetricsForTestApplication() {
     String metricResponse = getActuatorMetricsForTestApplication();
     assertThat(metricResponse).isNotEmpty();
-    //assertThat(metricResponse).contains("application.ready.time");
+    assertThat(metricResponse).contains("low.key.one");
+    assertThat(metricResponse).doesNotContain("high.key.one");
   }
 
   @Test
