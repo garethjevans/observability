@@ -9,7 +9,6 @@ management:
         include:
           - health
           - metrics
-          - prometheus
           - info
 
   endpoint:
@@ -21,10 +20,6 @@ management:
   info:
     git:
       mode: simple
-  prometheus:
-    metrics:
-      export:
-        enabled: true
   logging:
     export:
       enabled: true

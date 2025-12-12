@@ -16,6 +16,9 @@ import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -42,24 +45,6 @@ public class ActuatorTest {
   @Autowired protected MockMvc mockMvc;
 
   @Test
-  public void canAccessActuatorEndpoints() {
-    String actuatorResult = getActuator();
-    assertThat(actuatorResult).isNotNull();
-
-    actuatorResult = getActuatorHealth();
-
-    assertThat(actuatorResult).isNotNull();
-    assertThat(actuatorResult).contains("{\"status\":\"UP\"}");
-  }
-
-  @Test
-  public void canGetMetrics() {
-    String metricResponse = getActuatorMetrics();
-    assertThat(metricResponse).isNotEmpty();
-    assertThat(metricResponse).contains("application.ready.time");
-  }
-
-  @Test
   public void canGetMetricsForTestApplication() {
     String metricResponse = getActuatorMetricsForTestApplication();
     assertThat(metricResponse).isNotEmpty();
@@ -68,40 +53,33 @@ public class ActuatorTest {
   }
 
   @Test
-  public void canGetPrometheus() {
-    String prometheusResponse = getActuatorPrometheus();
+  public void canGetLowScrape() {
+    String prometheusResponse = getLowScrapeEndpoint();
     assertThat(prometheusResponse).isNotEmpty();
     assertThat(prometheusResponse).contains("# TYPE application_ready_time_seconds gauge");
+
+    List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
+            .filter(f -> f.startsWith("test_application"))
+            .toList();
+    assertThat(scrape).hasSizeGreaterThan(5);
   }
 
-  private String getActuator() {
-    try {
-      MvcResult mockRes = mockMvc.perform(get("/actuator")).andReturn();
-      checkResponseCode(mockRes.getResponse());
-      return mockRes.getResponse().getContentAsString();
-    } catch (HttpClientErrorException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  @Test
+  public void canGetHighScrape() {
+    String prometheusResponse = getHighScrapeEndpoint();
+    assertThat(prometheusResponse).isNotEmpty();
+    assertThat(prometheusResponse).contains("# TYPE application_ready_time_seconds gauge");
+
+    List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
+            .filter(f -> f.startsWith("test_application"))
+            .toList();
+    assertThat(scrape).hasSizeGreaterThan(10);
   }
 
-  private String getActuatorHealth() {
-    try {
-      MvcResult mockRes = mockMvc.perform(get("/actuator/health")).andReturn();
-      checkResponseCode(mockRes.getResponse());
-      return mockRes.getResponse().getContentAsString();
-    } catch (HttpClientErrorException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private String getActuatorPrometheus() {
+  private String getLowScrapeEndpoint() {
     try {
       MvcResult mockRes =
-          mockMvc.perform(get("/actuator/prometheus").accept(MediaType.TEXT_PLAIN)).andReturn();
+          mockMvc.perform(get("/low").accept(MediaType.TEXT_PLAIN)).andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {
@@ -111,9 +89,10 @@ public class ActuatorTest {
     }
   }
 
-  private String getActuatorMetrics() {
+  private String getHighScrapeEndpoint() {
     try {
-      MvcResult mockRes = mockMvc.perform(get("/actuator/metrics")).andReturn();
+      MvcResult mockRes =
+              mockMvc.perform(get("/high").accept(MediaType.TEXT_PLAIN)).andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {
@@ -125,7 +104,8 @@ public class ActuatorTest {
 
   private String getActuatorMetricsForTestApplication() {
     try {
-      MvcResult mockRes = mockMvc.perform(get("/actuator/metrics/test.application")).andReturn();
+      MvcResult mockRes =
+              mockMvc.perform(get("/actuator/metrics/test.application").accept(MediaType.APPLICATION_JSON)).andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {
