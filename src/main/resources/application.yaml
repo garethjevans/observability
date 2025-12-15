@@ -29,5 +29,5 @@ server:
 
 logging:
   level:
-    root: DEBUG
-    org.springframework: INFO
+    root: INFO
+    io.micrometer: DEBUG

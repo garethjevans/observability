@@ -1,7 +1,9 @@
 package org.garethjevans.observability;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.core.instrument.config.MeterFilterReply;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.prometheusmetrics.PrometheusConfig;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
@@ -12,6 +14,8 @@ import org.springframework.boot.actuate.metrics.MetricsEndpoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.function.Predicate;
+
 @Configuration
 public class ApplicationConfig {
 
@@ -21,7 +25,17 @@ public class ApplicationConfig {
     @Qualifier("high")
     public PrometheusMeterRegistry high() {
         PrometheusMeterRegistry high = new PrometheusMeterRegistry(new HighCardinalityPrometheusConfig());
-        high.config().meterFilter(MeterFilter.accept());
+        high.config()
+                .meterFilter(MeterFilter.maximumAllowableTags(
+                    new ApplicationObservationConvention().getName(),
+                        ApplicationObservationDocumentation.HighCardinalityKeyNames.ONE.asString(),
+                        50,
+                        logAndDeny()))
+                .meterFilter(MeterFilter.maximumAllowableTags(
+                    new ApplicationObservationConvention().getName(),
+                        ApplicationObservationDocumentation.HighCardinalityKeyNames.TWO.asString(),
+                        50,
+                        logAndDeny()));
         return high;
     }
 
@@ -76,5 +90,22 @@ public class ApplicationConfig {
             return null;
         }
 
+    }
+
+    static MeterFilter logAndDeny(Predicate<Meter.Id> iff) {
+        return new MeterFilter() {
+            @Override
+            public MeterFilterReply accept(Meter.Id id) {
+                if (iff.test(id)) {
+                    LOGGER.warn("Dropping meter for id {}", id);
+                    return MeterFilterReply.DENY;
+                }
+                return MeterFilterReply.NEUTRAL;
+            }
+        };
+    }
+
+    static MeterFilter logAndDeny() {
+        return logAndDeny(id -> true);
     }
 }
