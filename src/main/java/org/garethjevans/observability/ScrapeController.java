@@ -19,12 +19,12 @@ public class ScrapeController {
         this.low = low;
     }
 
-    @RequestMapping("/high")
+    @RequestMapping("/actuator/prometheus-high-cardinality")
     public @ResponseBody String high(@RequestHeader("Accept") String accept) {
         return high.scrape(accept);
     }
 
-    @RequestMapping("/low")
+    @RequestMapping("/actuator/prometheus")
     public @ResponseBody String low(@RequestHeader("Accept") String accept) {
         return low.scrape(accept);
     }

@@ -62,6 +62,12 @@ public class ActuatorTest {
             .filter(f -> f.startsWith("test_application"))
             .toList();
     assertThat(scrape).hasSizeGreaterThan(5);
+
+    scrape.stream().map(s -> "LC> " + s).forEach(LOGGER::debug);
+
+    assertThat(prometheusResponse).isNotEmpty();
+    assertThat(prometheusResponse).contains("low_key_one");
+    assertThat(prometheusResponse).doesNotContain("high_key_one");
   }
 
   @Test
@@ -74,12 +80,18 @@ public class ActuatorTest {
             .filter(f -> f.startsWith("test_application"))
             .toList();
     assertThat(scrape).hasSizeGreaterThan(10);
+
+    scrape.stream().map(s -> "HC> " + s).forEach(LOGGER::debug);
+
+    assertThat(prometheusResponse).isNotEmpty();
+    assertThat(prometheusResponse).contains("low_key_one");
+    assertThat(prometheusResponse).contains("high_key_one");
   }
 
   private String getLowScrapeEndpoint() {
     try {
       MvcResult mockRes =
-          mockMvc.perform(get("/low").accept(MediaType.TEXT_PLAIN)).andReturn();
+          mockMvc.perform(get("/actuator/prometheus").accept(MediaType.TEXT_PLAIN)).andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {
@@ -92,7 +104,7 @@ public class ActuatorTest {
   private String getHighScrapeEndpoint() {
     try {
       MvcResult mockRes =
-              mockMvc.perform(get("/high").accept(MediaType.TEXT_PLAIN)).andReturn();
+              mockMvc.perform(get("/actuator/prometheus-high-cardinality").accept(MediaType.TEXT_PLAIN)).andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {

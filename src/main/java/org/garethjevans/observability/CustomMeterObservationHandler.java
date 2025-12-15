@@ -6,7 +6,6 @@ import io.micrometer.core.instrument.observation.MeterObservationHandler;
 import io.micrometer.observation.Observation;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class CustomMeterObservationHandler implements MeterObservationHandler<Observation.Context> {
@@ -15,27 +14,9 @@ public class CustomMeterObservationHandler implements MeterObservationHandler<Ob
 
     private final boolean shouldCreateLongTaskTimer;
 
-    /**
-     * Creates the handler with the default configuration.
-     * @param meterRegistry the MeterRegistry to use
-     */
     public CustomMeterObservationHandler(MeterRegistry meterRegistry) {
         this.meterRegistry = meterRegistry;
         this.shouldCreateLongTaskTimer = true;
-    }
-
-    /**
-     * Creates the handler with the defined IgnoredMeters to use when the handler
-     * processes the Observations.
-     * @param meterRegistry the MeterRegistry to use
-     * @param metersToIgnore the Meters that should not be created when Observations are
-     * handled
-     * @since 1.13.0
-     */
-    public CustomMeterObservationHandler(MeterRegistry meterRegistry, io.micrometer.core.instrument.observation.DefaultMeterObservationHandler.IgnoredMeters... metersToIgnore) {
-        this.meterRegistry = meterRegistry;
-        this.shouldCreateLongTaskTimer = Arrays.stream(metersToIgnore)
-                .noneMatch(ignored -> ignored == io.micrometer.core.instrument.observation.DefaultMeterObservationHandler.IgnoredMeters.LONG_TASK_TIMER);
     }
 
     @Override

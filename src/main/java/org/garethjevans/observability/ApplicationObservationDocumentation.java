@@ -5,14 +5,13 @@ import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationConvention;
 import io.micrometer.observation.docs.ObservationDocumentation;
 
-public enum TestApplicationObservationDocumentation implements ObservationDocumentation {
+public enum ApplicationObservationDocumentation implements ObservationDocumentation {
 
-  /** Metrics concerning MCP method calls via the MCP Gateway. */
-  TEST_APPLICATION {
+  APPLICATION {
     @Override
     public Class<? extends ObservationConvention<? extends Observation.Context>>
         getDefaultConvention() {
-      return TestApplicationObservationConvention.class;
+      return ApplicationObservationConvention.class;
     }
 
     @Override

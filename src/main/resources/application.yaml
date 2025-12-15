@@ -29,13 +29,5 @@ server:
 
 logging:
   level:
-    root: INFO
-    com.vmware: DEBUG
+    root: DEBUG
     org.springframework: INFO
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.security: DEBUG
-    org.apache.hc.client5.http: INFO
-    org.apache.hc.client5.http.headers: INFO
-    org.apache.hc.client5.http.impl: INFO
-    org.apache.hc.client5.http.protocol: INFO
-    WireMock: WARN

@@ -2,7 +2,7 @@ package org.garethjevans.observability;
 
 import io.micrometer.observation.Observation;
 
-public class TestApplicationObservationContext extends Observation.Context {
+public class ApplicationObservationContext extends Observation.Context {
 
     private String lowKeyOne;
     private String lowKeyTwo;
