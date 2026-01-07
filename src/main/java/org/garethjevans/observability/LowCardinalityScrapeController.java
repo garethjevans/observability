@@ -8,13 +8,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 @Controller
-public class ScrapeController {
+public class HighCardinalityScrapeController {
 
     private final PrometheusMeterRegistry high;
     private final PrometheusMeterRegistry low;
 
-    public ScrapeController(@Qualifier("high") PrometheusMeterRegistry high,
-                            @Qualifier("low") PrometheusMeterRegistry low) {
+    public HighCardinalityScrapeController(@Qualifier("high") PrometheusMeterRegistry high,
+                                           @Qualifier("low") PrometheusMeterRegistry low) {
         this.high = high;
         this.low = low;
     }
