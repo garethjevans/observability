@@ -25,13 +25,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 @SpringBootTest(
     properties = {
       "server.shutdown=immediate",
-      "metrics.allow-high-cardinality=true"
+      "metrics.allow-high-cardinality=false"
     },
     webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc(addFilters = false)
-public class HighCardinalityTest {
+public class LowCardinalityTest {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(HighCardinalityTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LowCardinalityTest.class);
 
   @Autowired protected MockMvc mockMvc;
 
@@ -52,7 +52,13 @@ public class HighCardinalityTest {
     List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
             .filter(f -> f.startsWith("test_application"))
             .toList();
-    assertThat(scrape).hasSize(0);
+    assertThat(scrape).hasSize(5);
+
+    scrape.stream().map(s -> "LC> " + s).forEach(LOGGER::debug);
+
+    assertThat(prometheusResponse).isNotEmpty();
+    assertThat(prometheusResponse).contains("low_key_one");
+    assertThat(prometheusResponse).doesNotContain("high_key_one");
   }
 
   @Test

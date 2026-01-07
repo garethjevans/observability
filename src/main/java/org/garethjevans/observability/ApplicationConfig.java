@@ -10,7 +10,9 @@ import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.actuate.metrics.MetricsEndpoint;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -23,9 +25,11 @@ public class ApplicationConfig {
 
     @Bean
     @Qualifier("high")
+    @ConditionalOnBooleanProperty(name="metrics.allow-high-cardinality", havingValue = true)
     public PrometheusMeterRegistry high() {
         PrometheusMeterRegistry high = new PrometheusMeterRegistry(new HighCardinalityPrometheusConfig());
         high.config()
+                .meterFilter(MeterFilter.acceptNameStartsWith("test.application"))
                 .meterFilter(MeterFilter.maximumAllowableTags(
                     new ApplicationObservationConvention().getName(),
                         ApplicationObservationDocumentation.HighCardinalityKeyNames.ONE.asString(),
@@ -41,21 +45,19 @@ public class ApplicationConfig {
 
     @Bean
     @Qualifier("low")
-    public PrometheusMeterRegistry low() {
+    public PrometheusMeterRegistry low(@Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
         PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+        if (allowHighCardinality) {
+            low.config()
+                    .meterFilter(MeterFilter.denyNameStartsWith("test.application"));
+        }
+
         low.config().meterFilter(MeterFilter.ignoreTags(
                 ApplicationObservationDocumentation.HighCardinalityKeyNames.ONE.asString(),
                 ApplicationObservationDocumentation.HighCardinalityKeyNames.TWO.asString()));
+
         return low;
     }
-
-//    @Bean
-//    public CompositeMeterRegistry meterRegistry(@Qualifier("high") PrometheusMeterRegistry high,
-//                                       @Qualifier("low") PrometheusMeterRegistry low) {
-//        return new CompositeMeterRegistry()
-//            .add(low)
-//            .add(high);
-//    }
 
     @Bean
     public ObservationRegistry observationRegistry(CompositeMeterRegistry meterRegistry) {
