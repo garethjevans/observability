@@ -1,8 +1,8 @@
 package org.garethjevans.observability;
 
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.metrics.CompositeMeterRegistryAutoConfiguration;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration;
 
 @SpringBootApplication(exclude = {
 		CompositeMeterRegistryAutoConfiguration.class
