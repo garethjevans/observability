@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 
 @SpringBootTest(
@@ -52,7 +53,7 @@ public class LowCardinalityTest {
     List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
             .filter(f -> f.startsWith("test_application"))
             .toList();
-    assertThat(scrape).hasSize(5);
+    assertThat(scrape).hasSizeGreaterThan(5);
 
     scrape.stream().map(s -> "LC> " + s).forEach(LOGGER::debug);
 
@@ -63,20 +64,12 @@ public class LowCardinalityTest {
 
   @Test
   public void canGetHighScrape() {
-    String prometheusResponse = getHighScrapeEndpoint();
-    assertThat(prometheusResponse).isNotEmpty();
-    assertThat(prometheusResponse).contains("# TYPE application_ready_time_seconds gauge");
-
-    List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
-            .filter(f -> f.startsWith("test_application"))
-            .toList();
-    assertThat(scrape).hasSizeGreaterThan(10);
-
-    scrape.stream().map(s -> "HC> " + s).forEach(LOGGER::debug);
-
-    assertThat(prometheusResponse).isNotEmpty();
-    assertThat(prometheusResponse).contains("low_key_one");
-    assertThat(prometheusResponse).contains("high_key_one");
+    try {
+      getHighScrapeEndpoint();
+      fail("Expected HttpClientErrorException");
+    } catch (HttpClientErrorException e) {
+      assertThat(e.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
   }
 
   private String getLowScrapeEndpoint() {

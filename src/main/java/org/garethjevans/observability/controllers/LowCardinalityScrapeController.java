@@ -1,4 +1,4 @@
-package org.garethjevans.observability;
+package org.garethjevans.observability.controllers;
 
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
 import org.springframework.beans.factory.annotation.Qualifier;

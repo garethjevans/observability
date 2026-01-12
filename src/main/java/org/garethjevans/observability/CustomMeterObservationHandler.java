@@ -64,6 +64,7 @@ public class CustomMeterObservationHandler implements MeterObservationHandler<Ob
         for (KeyValue keyValue : context.getLowCardinalityKeyValues()) {
             tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
         }
+        // this is the custom part of this class.  We have added the high cardinality values here.
         for (KeyValue keyValue : context.getHighCardinalityKeyValues()) {
             tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
         }

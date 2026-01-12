@@ -15,7 +15,9 @@ import org.springframework.boot.actuate.metrics.MetricsEndpoint;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
+import java.util.List;
 import java.util.function.Predicate;
 
 @Configuration
@@ -64,14 +66,26 @@ public class ApplicationConfig {
         meterRegistry
                 .getRegistries()
                 .forEach(registry -> { LOGGER.info("Registry -  {}", registry); });
-
         ObservationRegistry registry = ObservationRegistry
                 .create();
+
+        LOGGER.info("Observation Registry - created {}", meterRegistry);
 
         registry.observationConfig()
                 .observationHandler(new CustomMeterObservationHandler(meterRegistry));
 
         return registry;
+    }
+
+    @Bean
+    @Primary
+    public CompositeMeterRegistry compositeMeterRegistry(List<PrometheusMeterRegistry> meterRegistries) {
+        CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry();
+        for (PrometheusMeterRegistry meterRegistry : meterRegistries) {
+            LOGGER.info("Adding PrometheusMeterRegistry {} to CompositeMeterRegistry", meterRegistry);
+            compositeMeterRegistry.add(meterRegistry);
+        }
+        return compositeMeterRegistry;
     }
 
     // recreate the metrics endpoint with the low cardinality store
