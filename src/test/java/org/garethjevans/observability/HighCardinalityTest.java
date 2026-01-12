@@ -52,7 +52,7 @@ public class HighCardinalityTest {
     List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
             .filter(f -> f.startsWith("test_application"))
             .toList();
-    assertThat(scrape).hasSize(0);
+    assertThat(scrape).hasSizeGreaterThan(5);
   }
 
   @Test

@@ -14,9 +14,12 @@ public class CustomMeterObservationHandler implements MeterObservationHandler<Ob
 
     private final boolean shouldCreateLongTaskTimer;
 
-    public CustomMeterObservationHandler(MeterRegistry meterRegistry) {
+    private final boolean allowHighCardinality;
+
+    public CustomMeterObservationHandler(MeterRegistry meterRegistry, boolean allowHighCardinality) {
         this.meterRegistry = meterRegistry;
         this.shouldCreateLongTaskTimer = true;
+        this.allowHighCardinality = allowHighCardinality;
     }
 
     @Override
@@ -64,9 +67,11 @@ public class CustomMeterObservationHandler implements MeterObservationHandler<Ob
         for (KeyValue keyValue : context.getLowCardinalityKeyValues()) {
             tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
         }
-        // this is the custom part of this class.  We have added the high cardinality values here.
-        for (KeyValue keyValue : context.getHighCardinalityKeyValues()) {
-            tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
+        if (allowHighCardinality) {
+            // this is the custom part of this class.  We have added the high cardinality values here.
+            for (KeyValue keyValue : context.getHighCardinalityKeyValues()) {
+                tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
+            }
         }
         return tags;
     }

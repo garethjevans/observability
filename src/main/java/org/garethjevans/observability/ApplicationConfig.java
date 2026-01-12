@@ -49,10 +49,10 @@ public class ApplicationConfig {
     @Qualifier("low")
     public PrometheusMeterRegistry low(@Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
         PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-        if (allowHighCardinality) {
-            low.config()
-                    .meterFilter(MeterFilter.denyNameStartsWith("test.application"));
-        }
+//        if (allowHighCardinality) {
+//            low.config()
+//                    .meterFilter(MeterFilter.denyNameStartsWith("test.application"));
+//        }
 
         low.config().meterFilter(MeterFilter.ignoreTags(
                 ApplicationObservationDocumentation.HighCardinalityKeyNames.ONE.asString(),
@@ -62,7 +62,7 @@ public class ApplicationConfig {
     }
 
     @Bean
-    public ObservationRegistry observationRegistry(CompositeMeterRegistry meterRegistry) {
+    public ObservationRegistry observationRegistry(CompositeMeterRegistry meterRegistry, @Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
         meterRegistry
                 .getRegistries()
                 .forEach(registry -> { LOGGER.info("Registry -  {}", registry); });
@@ -72,7 +72,7 @@ public class ApplicationConfig {
         LOGGER.info("Observation Registry - created {}", meterRegistry);
 
         registry.observationConfig()
-                .observationHandler(new CustomMeterObservationHandler(meterRegistry));
+                .observationHandler(new CustomMeterObservationHandler(meterRegistry, allowHighCardinality));
 
         return registry;
     }
