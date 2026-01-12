@@ -6,7 +6,7 @@ plugins {
 
 group = "org.garethjevans"
 version = "0.0.1-SNAPSHOT"
-description = "Spring Boot Observaility"
+description = "Spring Boot Observability"
 
 java {
 	toolchain {
@@ -24,6 +24,7 @@ dependencies {
 	implementation("io.micrometer:micrometer-registry-prometheus")
 
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
+	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
