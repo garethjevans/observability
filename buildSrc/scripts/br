@@ -1,0 +1,2 @@
+# shortcut to running gradle build
+gradlew :bootRun --args='--spring.profiles.active=test-data,high-cardinality'

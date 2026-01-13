@@ -31,13 +31,23 @@ logging:
   level:
     root: INFO
     io.micrometer: DEBUG
+---
+spring:
+  config:
+    activate:
+      on-profile: high-cardinality
+
+metrics:
+  allow-high-cardinality: true
+---
+spring:
+  config:
+    activate:
+      on-profile: test-data
 
 metrics:
   high-cardinality-tag-filters:
-    filters:
-      - metric-name: test.application
-        tag-name: high.key.one
-        max-values: 10
-      - metric-name: test.application
-        tag-name: high.key.two
-        max-values: 10
+    - tag-name: high.key.one
+      max-values: 60
+    - tag-name: high.key.two
+      max-values: 75

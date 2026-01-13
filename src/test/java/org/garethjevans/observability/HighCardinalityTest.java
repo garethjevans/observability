@@ -17,14 +17,16 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.client.HttpClientErrorException;
 
 @SpringBootTest(
-    properties = {"server.shutdown=immediate", "metrics.allow-high-cardinality=true"},
+    properties = {"server.shutdown=immediate"},
     webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc(addFilters = false)
+@ActiveProfiles({"test-data", "high-cardinality"})
 public class HighCardinalityTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(HighCardinalityTest.class);
@@ -60,7 +62,7 @@ public class HighCardinalityTest {
 
     List<String> scrape =
         Arrays.stream(prometheusResponse.split("\n"))
-            .filter(f -> f.startsWith("test_application"))
+            .filter(f -> f.startsWith("high_test_application"))
             .toList();
     assertThat(scrape).hasSizeGreaterThan(10);
 

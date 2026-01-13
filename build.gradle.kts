@@ -33,6 +33,13 @@ tasks.withType<Test> {
 	useJUnitPlatform()
 }
 
+tasks.test {
+	testLogging {
+		events("passed", "skipped", "failed")
+		showStandardStreams = true
+	}
+}
+
 spotless {
 	java {
 		googleJavaFormat()

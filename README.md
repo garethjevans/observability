@@ -26,3 +26,16 @@ graph TD;
     LowCardinalityPrometheusMeterRegistry-->LowCardinalityScrapeEndpoint;
     HighCardinalityPrometheusMeterRegistry-->HighCardinalityScrapeEndpoint;
 ```
+
+## Configuration
+
+The high cardinality data store can be enabled using the property `metrics.allow-high-cardinality`.  Limits on tags sizes (absolutely recommended) can also be configured as shown below:
+
+```yaml
+metrics:
+  high-cardinality-tag-filters:
+    - tag-name: high.key.one
+      max-values: 60
+    - tag-name: high.key.two
+      max-values: 75
+```
