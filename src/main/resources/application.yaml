@@ -31,3 +31,13 @@ logging:
   level:
     root: INFO
     io.micrometer: DEBUG
+
+metrics:
+  high-cardinality-tag-filters:
+    filters:
+      - metric-name: test.application
+        tag-name: high.key.one
+        max-values: 10
+      - metric-name: test.application
+        tag-name: high.key.two
+        max-values: 10

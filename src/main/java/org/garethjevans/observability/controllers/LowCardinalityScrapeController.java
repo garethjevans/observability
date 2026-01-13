@@ -10,14 +10,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class LowCardinalityScrapeController {
 
-    private final PrometheusMeterRegistry low;
+  private final PrometheusMeterRegistry low;
 
-    public LowCardinalityScrapeController(@Qualifier("low") PrometheusMeterRegistry low) {
-        this.low = low;
-    }
+  public LowCardinalityScrapeController(@Qualifier("low") PrometheusMeterRegistry low) {
+    this.low = low;
+  }
 
-    @RequestMapping("/actuator/prometheus")
-    public @ResponseBody String low(@RequestHeader("Accept") String accept) {
-        return low.scrape(accept);
-    }
+  @RequestMapping("/actuator/prometheus")
+  public @ResponseBody String low(@RequestHeader("Accept") String accept) {
+    return low.scrape(accept);
+  }
 }

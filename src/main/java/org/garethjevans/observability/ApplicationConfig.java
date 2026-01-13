@@ -7,6 +7,8 @@ import io.micrometer.core.instrument.config.MeterFilterReply;
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.prometheusmetrics.PrometheusConfig;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
+import java.util.List;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -17,111 +19,101 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import java.util.List;
-import java.util.function.Predicate;
-
 @Configuration
 public class ApplicationConfig {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationConfig.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationConfig.class);
 
-    @Bean
-    @Qualifier("high")
-    @ConditionalOnBooleanProperty(name="metrics.allow-high-cardinality", havingValue = true)
-    public PrometheusMeterRegistry high() {
-        PrometheusMeterRegistry high = new PrometheusMeterRegistry(new HighCardinalityPrometheusConfig());
-        high.config()
-                .meterFilter(MeterFilter.acceptNameStartsWith("test.application"))
-                .meterFilter(MeterFilter.maximumAllowableTags(
-                    new ApplicationObservationConvention().getName(),
-                        ApplicationObservationDocumentation.HighCardinalityKeyNames.ONE.asString(),
-                        50,
-                        logAndDeny()))
-                .meterFilter(MeterFilter.maximumAllowableTags(
-                    new ApplicationObservationConvention().getName(),
-                        ApplicationObservationDocumentation.HighCardinalityKeyNames.TWO.asString(),
-                        50,
-                        logAndDeny()));
-        return high;
-    }
+  @Bean
+  @Qualifier("high")
+  @ConditionalOnBooleanProperty(name = "metrics.allow-high-cardinality", havingValue = true)
+  public PrometheusMeterRegistry high(TagFilters tagFilters) {
+    PrometheusMeterRegistry high = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
-    @Bean
-    @Qualifier("low")
-    public PrometheusMeterRegistry low(@Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
-        PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-//        if (allowHighCardinality) {
-//            low.config()
-//                    .meterFilter(MeterFilter.denyNameStartsWith("test.application"));
-//        }
-
-        low.config().meterFilter(MeterFilter.ignoreTags(
-                ApplicationObservationDocumentation.HighCardinalityKeyNames.ONE.asString(),
-                ApplicationObservationDocumentation.HighCardinalityKeyNames.TWO.asString()));
-
-        return low;
-    }
-
-    @Bean
-    public ObservationRegistry observationRegistry(CompositeMeterRegistry meterRegistry, @Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
-        meterRegistry
-                .getRegistries()
-                .forEach(registry -> { LOGGER.info("Registry -  {}", registry); });
-        ObservationRegistry registry = ObservationRegistry
-                .create();
-
-        LOGGER.info("Observation Registry - created {}", meterRegistry);
-
-        registry.observationConfig()
-                .observationHandler(new CustomMeterObservationHandler(meterRegistry, allowHighCardinality));
-
-        return registry;
-    }
-
-    @Bean
-    @Primary
-    public CompositeMeterRegistry compositeMeterRegistry(List<PrometheusMeterRegistry> meterRegistries) {
-        CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry();
-        for (PrometheusMeterRegistry meterRegistry : meterRegistries) {
-            LOGGER.info("Adding PrometheusMeterRegistry {} to CompositeMeterRegistry", meterRegistry);
-            compositeMeterRegistry.add(meterRegistry);
+    if (tagFilters != null && tagFilters.getFilters() != null) {
+      for (TagFilter filter : tagFilters.getFilters()) {
+        // only add those filters with non-negative values
+        if (filter.getMaxValues() >= 0) {
+          high.config()
+              .meterFilter(
+                  MeterFilter.maximumAllowableTags(
+                      filter.getMetricName(),
+                      filter.getTagName(),
+                      filter.getMaxValues(),
+                      logAndDeny()));
         }
-        return compositeMeterRegistry;
+      }
     }
+    return high;
+  }
 
-    // recreate the metrics endpoint with the low cardinality store
-    @Bean
-    public MetricsEndpoint metricsEndpoint(@Qualifier("low") PrometheusMeterRegistry registry) {
-        return new MetricsEndpoint(registry);
+  @Bean
+  @Qualifier("low")
+  public PrometheusMeterRegistry low(TagFilters tagFilters) {
+    PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+
+    if (tagFilters != null && tagFilters.getFilters() != null) {
+      for (TagFilter filter : tagFilters.getFilters()) {
+        // TODO should we maintain a list of already added filters?
+        low.config().meterFilter(MeterFilter.ignoreTags(filter.getTagName()));
+      }
     }
+    return low;
+  }
 
-    public static class HighCardinalityPrometheusConfig implements PrometheusConfig {
+  @Bean
+  public ObservationRegistry observationRegistry(
+      CompositeMeterRegistry meterRegistry,
+      @Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
+    meterRegistry
+        .getRegistries()
+        .forEach(
+            registry -> {
+              LOGGER.info("Registry -  {}", registry);
+            });
+    ObservationRegistry registry = ObservationRegistry.create();
 
-        @Override
-        public String prefix() {
-            return "prometheus-high-cardinality";
+    LOGGER.info("Observation Registry - created {}", meterRegistry);
+
+    registry
+        .observationConfig()
+        .observationHandler(new CustomMeterObservationHandler(meterRegistry, allowHighCardinality));
+
+    return registry;
+  }
+
+  @Bean
+  @Primary
+  public CompositeMeterRegistry compositeMeterRegistry(
+      List<PrometheusMeterRegistry> meterRegistries) {
+    CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry();
+    for (PrometheusMeterRegistry meterRegistry : meterRegistries) {
+      LOGGER.info("Adding PrometheusMeterRegistry {} to CompositeMeterRegistry", meterRegistry);
+      compositeMeterRegistry.add(meterRegistry);
+    }
+    return compositeMeterRegistry;
+  }
+
+  // recreate the metrics endpoint with the low cardinality store
+  @Bean
+  public MetricsEndpoint metricsEndpoint(@Qualifier("low") PrometheusMeterRegistry registry) {
+    return new MetricsEndpoint(registry);
+  }
+
+  static MeterFilter logAndDeny(Predicate<Meter.Id> iff) {
+    return new MeterFilter() {
+      @Override
+      public MeterFilterReply accept(Meter.Id id) {
+        if (iff.test(id)) {
+          LOGGER.warn("Dropping meter for id {}", id);
+          return MeterFilterReply.DENY;
         }
+        return MeterFilterReply.NEUTRAL;
+      }
+    };
+  }
 
-        @Override
-        public String get(String key) {
-            return null;
-        }
-
-    }
-
-    static MeterFilter logAndDeny(Predicate<Meter.Id> iff) {
-        return new MeterFilter() {
-            @Override
-            public MeterFilterReply accept(Meter.Id id) {
-                if (iff.test(id)) {
-                    LOGGER.warn("Dropping meter for id {}", id);
-                    return MeterFilterReply.DENY;
-                }
-                return MeterFilterReply.NEUTRAL;
-            }
-        };
-    }
-
-    static MeterFilter logAndDeny() {
-        return logAndDeny(id -> true);
-    }
+  static MeterFilter logAndDeny() {
+    return logAndDeny(id -> true);
+  }
 }

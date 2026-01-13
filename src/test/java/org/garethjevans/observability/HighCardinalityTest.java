@@ -1,5 +1,12 @@
 package org.garethjevans.observability;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,19 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.io.UnsupportedEncodingException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-
 @SpringBootTest(
-    properties = {
-      "server.shutdown=immediate",
-      "metrics.allow-high-cardinality=true"
-    },
+    properties = {"server.shutdown=immediate", "metrics.allow-high-cardinality=true"},
     webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc(addFilters = false)
 public class HighCardinalityTest {
@@ -49,7 +45,8 @@ public class HighCardinalityTest {
     assertThat(prometheusResponse).isNotEmpty();
     assertThat(prometheusResponse).contains("# TYPE application_ready_time_seconds gauge");
 
-    List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
+    List<String> scrape =
+        Arrays.stream(prometheusResponse.split("\n"))
             .filter(f -> f.startsWith("test_application"))
             .toList();
     assertThat(scrape).hasSizeGreaterThan(5);
@@ -61,7 +58,8 @@ public class HighCardinalityTest {
     assertThat(prometheusResponse).isNotEmpty();
     assertThat(prometheusResponse).contains("# TYPE application_ready_time_seconds gauge");
 
-    List<String> scrape = Arrays.stream(prometheusResponse.split("\n"))
+    List<String> scrape =
+        Arrays.stream(prometheusResponse.split("\n"))
             .filter(f -> f.startsWith("test_application"))
             .toList();
     assertThat(scrape).hasSizeGreaterThan(10);
@@ -89,7 +87,9 @@ public class HighCardinalityTest {
   private String getHighScrapeEndpoint() {
     try {
       MvcResult mockRes =
-              mockMvc.perform(get("/actuator/prometheus-high-cardinality").accept(MediaType.TEXT_PLAIN)).andReturn();
+          mockMvc
+              .perform(get("/actuator/prometheus-high-cardinality").accept(MediaType.TEXT_PLAIN))
+              .andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {
@@ -102,7 +102,9 @@ public class HighCardinalityTest {
   private String getActuatorMetricsForTestApplication() {
     try {
       MvcResult mockRes =
-              mockMvc.perform(get("/actuator/metrics/test.application").accept(MediaType.APPLICATION_JSON)).andReturn();
+          mockMvc
+              .perform(get("/actuator/metrics/test.application").accept(MediaType.APPLICATION_JSON))
+              .andReturn();
       checkResponseCode(mockRes.getResponse());
       return mockRes.getResponse().getContentAsString();
     } catch (HttpClientErrorException e) {
