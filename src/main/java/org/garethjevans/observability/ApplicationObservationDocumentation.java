@@ -6,7 +6,6 @@ import io.micrometer.observation.ObservationConvention;
 import io.micrometer.observation.docs.ObservationDocumentation;
 
 public enum ApplicationObservationDocumentation implements ObservationDocumentation {
-
   APPLICATION {
     @Override
     public Class<? extends ObservationConvention<? extends Observation.Context>>
