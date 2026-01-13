@@ -30,14 +30,19 @@ public class ApplicationConfig {
   public PrometheusMeterRegistry high(TagFilters tagFilters) {
     PrometheusMeterRegistry high = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
-    for (TagFilter filter : tagFilters.getFilters()) {
-      high.config()
-          .meterFilter(
-              MeterFilter.maximumAllowableTags(
-                  filter.getMetricName(),
-                  filter.getTagName(),
-                  filter.getMaxValues(),
-                  logAndDeny()));
+    if (tagFilters != null && tagFilters.getFilters() != null) {
+      for (TagFilter filter : tagFilters.getFilters()) {
+        // only add those filters with non-negative values
+        if (filter.getMaxValues() >= 0) {
+          high.config()
+              .meterFilter(
+                  MeterFilter.maximumAllowableTags(
+                      filter.getMetricName(),
+                      filter.getTagName(),
+                      filter.getMaxValues(),
+                      logAndDeny()));
+        }
+      }
     }
     return high;
   }
@@ -45,9 +50,7 @@ public class ApplicationConfig {
   @Bean
   @Qualifier("low")
   public PrometheusMeterRegistry low() {
-    PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
-
-    return low;
+    return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
   }
 
   @Bean
