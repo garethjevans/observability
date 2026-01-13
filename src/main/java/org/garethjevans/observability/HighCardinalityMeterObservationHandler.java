@@ -8,8 +8,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A meter observation handler that prefixes metric names with "high." to avoid conflicts
- * with low cardinality metrics.
+ * A meter observation handler that prefixes metric names with "high." to avoid conflicts with low
+ * cardinality metrics.
  */
 public class HighCardinalityMeterObservationHandler
     implements MeterObservationHandler<Observation.Context> {

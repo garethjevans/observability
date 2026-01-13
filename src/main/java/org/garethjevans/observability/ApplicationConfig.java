@@ -29,13 +29,14 @@ public class ApplicationConfig {
   @Bean
   @Qualifier("high")
   @ConditionalOnBooleanProperty(name = "metrics.allow-high-cardinality", havingValue = true)
-  public PrometheusMeterRegistry high(TagFilters tagFilters) {
+  public PrometheusMeterRegistry high(MetricsConfigurationProperties config) {
     // Create a separate PrometheusRegistry for high cardinality metrics
     PrometheusRegistry prometheusRegistry = new PrometheusRegistry();
-    PrometheusMeterRegistry high = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
+    PrometheusMeterRegistry high =
+        new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
 
-    if (tagFilters != null && tagFilters.getFilters() != null) {
-      for (TagFilter filter : tagFilters.getFilters()) {
+    if (config != null && config.getHighCardinalityTagFilters() != null) {
+      for (TagFilter filter : config.getHighCardinalityTagFilters()) {
         // only add those filters with non-negative values
         if (filter.getMaxValues() > 0) {
           high.config()
@@ -53,13 +54,14 @@ public class ApplicationConfig {
 
   @Bean
   @Qualifier("low")
-  public PrometheusMeterRegistry low(TagFilters tagFilters) {
+  public PrometheusMeterRegistry low(MetricsConfigurationProperties config) {
     // Create a separate PrometheusRegistry for low cardinality metrics
     PrometheusRegistry prometheusRegistry = new PrometheusRegistry();
-    PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
+    PrometheusMeterRegistry low =
+        new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
 
-    if (tagFilters != null && tagFilters.getFilters() != null) {
-      for (TagFilter filter : tagFilters.getFilters()) {
+    if (config != null && config.getHighCardinalityTagFilters() != null) {
+      for (TagFilter filter : config.getHighCardinalityTagFilters()) {
         // TODO should we maintain a list of already added filters?
         low.config().meterFilter(MeterFilter.ignoreTags(filter.getTagName()));
       }
@@ -77,9 +79,7 @@ public class ApplicationConfig {
     LOGGER.info("Observation Registry - created with low registry and high registry (if enabled)");
 
     // Always add the low cardinality handler (no prefix)
-    registry
-        .observationConfig()
-        .observationHandler(new CustomMeterObservationHandler(lowRegistry));
+    registry.observationConfig().observationHandler(new CustomMeterObservationHandler(lowRegistry));
 
     // If high cardinality is enabled, add a separate handler with "high." prefix
     if (allowHighCardinality && highRegistry.isPresent()) {

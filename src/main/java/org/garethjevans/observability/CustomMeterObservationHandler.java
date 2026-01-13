@@ -7,9 +7,7 @@ import io.micrometer.observation.Observation;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A meter observation handler that only includes low cardinality tags.
- */
+/** A meter observation handler that only includes low cardinality tags. */
 public class CustomMeterObservationHandler implements MeterObservationHandler<Observation.Context> {
 
   private final MeterRegistry meterRegistry;

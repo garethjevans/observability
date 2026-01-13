@@ -7,8 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
+@Profile("test-data")
 public class TestApplicationConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TestApplicationConfig.class);
