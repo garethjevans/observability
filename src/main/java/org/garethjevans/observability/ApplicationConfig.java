@@ -49,8 +49,16 @@ public class ApplicationConfig {
 
   @Bean
   @Qualifier("low")
-  public PrometheusMeterRegistry low() {
-    return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+  public PrometheusMeterRegistry low(TagFilters tagFilters) {
+    PrometheusMeterRegistry low = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
+
+    if (tagFilters != null && tagFilters.getFilters() != null) {
+      for (TagFilter filter : tagFilters.getFilters()) {
+        // TODO should we maintain a list of already added filters?
+        low.config().meterFilter(MeterFilter.ignoreTags(filter.getTagName()));
+      }
+    }
+    return low;
   }
 
   @Bean

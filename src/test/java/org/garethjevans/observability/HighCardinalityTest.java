@@ -36,7 +36,7 @@ public class HighCardinalityTest {
     String metricResponse = getActuatorMetricsForTestApplication();
     assertThat(metricResponse).isNotEmpty();
     assertThat(metricResponse).contains("low.key.one");
-    assertThat(metricResponse).contains("high.key.one");
+    assertThat(metricResponse).doesNotContain("high.key.one");
   }
 
   @Test
