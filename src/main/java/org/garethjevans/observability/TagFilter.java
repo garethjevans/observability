@@ -9,7 +9,7 @@ package org.garethjevans.observability;
 public class TagFilter {
 
   /** Name of the metric to which this filter applies. */
-  private String metricName;
+  private String metricName = "";
 
   /** Name of the tag whose values are used to filter the metric. */
   private String tagName;
