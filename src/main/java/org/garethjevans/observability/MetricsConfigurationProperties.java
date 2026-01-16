@@ -11,6 +11,8 @@ public class MetricsConfigurationProperties {
 
   private List<TagFilter> highCardinalityTagFilters = new ArrayList<>();
 
+  private List<String> highCardinalityMetrics = new ArrayList<>();
+
   private boolean allowHighCardinality = false;
 
   public List<TagFilter> getHighCardinalityTagFilters() {
@@ -19,6 +21,14 @@ public class MetricsConfigurationProperties {
 
   public void setHighCardinalityTagFilters(List<TagFilter> highCardinalityTagFilters) {
     this.highCardinalityTagFilters = highCardinalityTagFilters;
+  }
+
+  public List<String> getHighCardinalityMetrics() {
+    return highCardinalityMetrics;
+  }
+
+  public void setHighCardinalityMetrics(List<String> highCardinalityMetrics) {
+    this.highCardinalityMetrics = highCardinalityMetrics;
   }
 
   public boolean isAllowHighCardinality() {
