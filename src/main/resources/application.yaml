@@ -10,6 +10,8 @@ management:
           - health
           - metrics
           - info
+          - prometheus
+          - prometheus-all
 
   endpoint:
     health:
@@ -51,3 +53,5 @@ metrics:
       max-values: 60
     - tag-name: high.key.two
       max-values: 75
+  high-cardinality-metrics:
+    - test.application

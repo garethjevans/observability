@@ -1,70 +1,61 @@
 package org.garethjevans.observability;
 
 import io.micrometer.common.KeyValue;
+import io.micrometer.common.KeyValues;
 import io.micrometer.core.instrument.*;
-import io.micrometer.core.instrument.observation.MeterObservationHandler;
+import io.micrometer.core.instrument.observation.DefaultMeterObservationHandler;
 import io.micrometer.observation.Observation;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
-/**
- * A meter observation handler that prefixes metric names with "high." to avoid conflicts with low
- * cardinality metrics.
- */
-public class HighCardinalityMeterObservationHandler
-    implements MeterObservationHandler<Observation.Context> {
+public class HighCardinalityMeterObservationHandler extends DefaultMeterObservationHandler {
 
   private final MeterRegistry meterRegistry;
-  private final boolean shouldCreateLongTaskTimer;
-  private final String keySuffix;
 
-  public HighCardinalityMeterObservationHandler(MeterRegistry meterRegistry) {
+  private final boolean shouldCreateLongTaskTimer;
+
+  private final Predicate<Observation.Context> shouldIncludeHighCardinality;
+
+  public HighCardinalityMeterObservationHandler(
+      MeterRegistry meterRegistry, Predicate<Observation.Context> shouldIncludeHighCardinality) {
+    super(meterRegistry);
     this.meterRegistry = meterRegistry;
     this.shouldCreateLongTaskTimer = true;
-    this.keySuffix = "_high_" + System.identityHashCode(meterRegistry);
+    this.shouldIncludeHighCardinality = shouldIncludeHighCardinality;
   }
 
   @Override
   public void onStart(Observation.Context context) {
-    String metricName = "high." + context.getName();
-
     if (shouldCreateLongTaskTimer) {
       LongTaskTimer.Sample longTaskSample =
-          LongTaskTimer.builder(metricName + ".active")
-              .tags(createTags(context))
-              .register(meterRegistry)
+          meterRegistry
+              .more()
+              .longTaskTimer(context.getName() + ".active", createTags(context))
               .start();
-      context.put(LongTaskTimer.Sample.class.getName() + keySuffix, longTaskSample);
+      context.put(LongTaskTimer.Sample.class, longTaskSample);
     }
 
     Timer.Sample sample = Timer.start(meterRegistry);
-    context.put(Timer.Sample.class.getName() + keySuffix, sample);
+    context.put(Timer.Sample.class, sample);
   }
 
   @Override
   public void onStop(Observation.Context context) {
-    String metricName = "high." + context.getName();
     List<Tag> tags = createTags(context);
     tags.add(Tag.of("error", getErrorValue(context)));
-
-    Timer.Sample sample = context.get(Timer.Sample.class.getName() + keySuffix);
-    if (sample != null) {
-      sample.stop(Timer.builder(metricName).tags(tags).register(this.meterRegistry));
-    }
+    Timer.Sample sample = context.getRequired(Timer.Sample.class);
+    sample.stop(this.meterRegistry.timer(context.getName(), tags));
 
     if (shouldCreateLongTaskTimer) {
-      LongTaskTimer.Sample longTaskSample =
-          context.get(LongTaskTimer.Sample.class.getName() + keySuffix);
-      if (longTaskSample != null) {
-        longTaskSample.stop();
-      }
+      LongTaskTimer.Sample longTaskSample = context.getRequired(LongTaskTimer.Sample.class);
+      longTaskSample.stop();
     }
   }
 
   @Override
   public void onEvent(Observation.Event event, Observation.Context context) {
-    String metricName = "high." + context.getName();
-    Counter.builder(metricName + "." + event.getName())
+    Counter.builder(context.getName() + "." + event.getName())
         .tags(createTags(context))
         .register(meterRegistry)
         .increment();
@@ -76,13 +67,12 @@ public class HighCardinalityMeterObservationHandler
   }
 
   private List<Tag> createTags(Observation.Context context) {
+    KeyValues keyValues =
+        shouldIncludeHighCardinality.test(context)
+            ? context.getAllKeyValues()
+            : context.getLowCardinalityKeyValues();
     List<Tag> tags = new ArrayList<>();
-    // Add low cardinality tags
-    for (KeyValue keyValue : context.getLowCardinalityKeyValues()) {
-      tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
-    }
-    // Add high cardinality tags
-    for (KeyValue keyValue : context.getHighCardinalityKeyValues()) {
+    for (KeyValue keyValue : keyValues) {
       tags.add(Tag.of(keyValue.getKey(), keyValue.getValue()));
     }
     return tags;
