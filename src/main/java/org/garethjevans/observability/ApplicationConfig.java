@@ -1,113 +1,87 @@
 package org.garethjevans.observability;
 
-import io.micrometer.core.instrument.Clock;
+import static io.micrometer.core.instrument.config.MeterFilter.forMeters;
+import static io.micrometer.core.instrument.config.MeterFilter.ignoreTags;
+
 import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.composite.CompositeMeterRegistry;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.config.MeterFilterReply;
-import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.prometheusmetrics.PrometheusConfig;
 import io.micrometer.prometheusmetrics.PrometheusMeterRegistry;
-import io.prometheus.metrics.model.registry.PrometheusRegistry;
-import java.util.List;
 import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
-import org.springframework.boot.micrometer.metrics.actuate.endpoint.MetricsEndpoint;
+import org.springframework.boot.micrometer.metrics.autoconfigure.export.prometheus.PrometheusScrapeEndpoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class ApplicationConfig {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ApplicationConfig.class);
 
   @Bean
-  @Qualifier("high")
-  @ConditionalOnBooleanProperty(name = "metrics.allow-high-cardinality", havingValue = true)
-  public PrometheusMeterRegistry high(MetricsConfigurationProperties config) {
-    // Create a separate PrometheusRegistry for high cardinality metrics
-    PrometheusRegistry prometheusRegistry = new PrometheusRegistry();
-    PrometheusMeterRegistry high =
-        new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
+  @Qualifier("lowCardinalityRegistry")
+  PrometheusMeterRegistry lowCardinalityRegistry(MetricsConfigurationProperties config) {
+    PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
 
-    if (config != null && config.getHighCardinalityTagFilters() != null) {
-      for (TagFilter filter : config.getHighCardinalityTagFilters()) {
-        // only add those filters with non-negative values
-        if (filter.getMaxValues() > 0) {
-          high.config()
-              .meterFilter(
-                  MeterFilter.maximumAllowableTags(
-                      filter.getMetricName(),
-                      filter.getTagName(),
-                      filter.getMaxValues(),
-                      logAndDeny()));
-        }
-      }
-    }
-    return high;
-  }
-
-  @Bean
-  @Qualifier("low")
-  public PrometheusMeterRegistry low(MetricsConfigurationProperties config) {
-    // Create a separate PrometheusRegistry for low cardinality metrics
-    PrometheusRegistry prometheusRegistry = new PrometheusRegistry();
-    PrometheusMeterRegistry low =
-        new PrometheusMeterRegistry(PrometheusConfig.DEFAULT, prometheusRegistry, Clock.SYSTEM);
-
-    if (config != null && config.getHighCardinalityTagFilters() != null) {
-      for (TagFilter filter : config.getHighCardinalityTagFilters()) {
-        // TODO should we maintain a list of already added filters?
-        low.config().meterFilter(MeterFilter.ignoreTags(filter.getTagName()));
-      }
-    }
-    return low;
-  }
-
-  @Bean
-  public ObservationRegistry observationRegistry(
-      @Qualifier("low") PrometheusMeterRegistry lowRegistry,
-      @Qualifier("high") java.util.Optional<PrometheusMeterRegistry> highRegistry,
-      @Value("${metrics.allow-high-cardinality:false}") boolean allowHighCardinality) {
-    ObservationRegistry registry = ObservationRegistry.create();
-
-    LOGGER.info("Observation Registry - created with low registry and high registry (if enabled)");
-
-    // Always add the low cardinality handler (no prefix)
-    registry.observationConfig().observationHandler(new CustomMeterObservationHandler(lowRegistry));
-
-    // If high cardinality is enabled, add a separate handler with "high." prefix
-    if (allowHighCardinality && highRegistry.isPresent()) {
-      LOGGER.info("Adding high cardinality observation handler with 'high.' prefix");
+    for (TagFilter filter : config.getHighCardinalityTagFilters()) {
       registry
-          .observationConfig()
-          .observationHandler(new HighCardinalityMeterObservationHandler(highRegistry.get()));
+          .config()
+          .meterFilter(
+              forMeters(
+                  c -> isCustomHighCardinalityMeter(c, config), ignoreTags(filter.getTagName())));
     }
-
     return registry;
   }
 
   @Bean
-  @Primary
-  public CompositeMeterRegistry compositeMeterRegistry(
-      List<PrometheusMeterRegistry> meterRegistries) {
-    CompositeMeterRegistry compositeMeterRegistry = new CompositeMeterRegistry();
-    for (PrometheusMeterRegistry meterRegistry : meterRegistries) {
-      LOGGER.info("Adding PrometheusMeterRegistry {} to CompositeMeterRegistry", meterRegistry);
-      compositeMeterRegistry.add(meterRegistry);
-    }
-    return compositeMeterRegistry;
+  @Qualifier("highCardinalityRegistry")
+  @ConditionalOnBooleanProperty(name = "metrics.allow-high-cardinality", havingValue = true)
+  PrometheusMeterRegistry highCardinalityRegistry() {
+    return new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
   }
 
-  // recreate the metrics endpoint with the low cardinality store
+  // @Qualifier is only needed here because the name of the parameter is registry and not
+  // lowCardinalityRegistry (the name of the bean).
+  // If the name of the parameter would be lowCardinalityRegistry, @Qualifier would not be needed,
+  // see the next method.
   @Bean
-  public MetricsEndpoint metricsEndpoint(@Qualifier("low") PrometheusMeterRegistry registry) {
-    return new MetricsEndpoint(registry);
+  PrometheusScrapeEndpoint prometheusEndpoint(
+      @Qualifier("lowCardinalityRegistry") PrometheusMeterRegistry registry,
+      PrometheusConfig prometheusConfig) {
+    return new PrometheusScrapeEndpoint(
+        registry.getPrometheusRegistry(), prometheusConfig.prometheusProperties());
+  }
+
+  @Bean
+  @ConditionalOnBooleanProperty(name = "metrics.allow-high-cardinality", havingValue = true)
+  PrometheusHighCardinalityScrapeEndpoint prometheusHighCardinalityScrapeEndpoint(
+      @Qualifier("highCardinalityRegistry") PrometheusMeterRegistry highCardinalityRegistry,
+      PrometheusConfig prometheusConfig) {
+    return new PrometheusHighCardinalityScrapeEndpoint(
+        highCardinalityRegistry.getPrometheusRegistry(), prometheusConfig.prometheusProperties());
+  }
+
+  @Bean
+  HighCardinalityMeterObservationHandler highCardinalityMeterObservationHandler(
+      MeterRegistry registry, MetricsConfigurationProperties config) {
+    return new HighCardinalityMeterObservationHandler(
+        registry, new HighCardinalityPredicate(config));
+  }
+
+  private boolean isCustomHighCardinalityMeter(Meter.Id id, MetricsConfigurationProperties config) {
+    if (config.getHighCardinalityMetrics() != null) {
+      for (String metric : config.getHighCardinalityMetrics()) {
+        if (id.getName().equals(metric) || id.getName().startsWith(metric + ".")) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   static MeterFilter logAndDeny(Predicate<Meter.Id> iff) {
